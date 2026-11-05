@@ -1,6 +1,14 @@
-# FeedLens
+# 觅读订阅 · FeedLens
 
-FeedLens is a small Chrome/Edge extension that discovers and previews RSS, Atom, XML, and OPML feeds in a clean reader interface.
+觅得好文，读得自在。
+
+Feed your curiosity.
+
+觅读订阅是一款 Chrome/Edge 扩展，帮助你发现网页订阅源，预览 RSS、Atom 与 OPML，并通过订阅链接将内容交给常用阅读器。
+
+FeedLens is a lightweight Chrome/Edge extension that discovers website feeds, previews RSS, Atom, and OPML, and opens feeds in your preferred reader.
+
+名称、口号、表达方式和能力边界以[品牌规范](docs/brand.md)为准。扩展信息按浏览器语言显示中文或英文名称；阅读预览界面目前使用英文。
 
 ## What It Does
 
@@ -11,6 +19,7 @@ FeedLens is a small Chrome/Edge extension that discovers and previews RSS, Atom,
 - Parses feed metadata, entries, dates, authors, links, summaries, and common feed modules.
 - Opens a lightweight extension preview page instead of fighting the browser's XML viewer.
 - Shows the feed URL in the list header and provides a one-click copy button.
+- Opens feeds in external readers from the Subscribe menu, with a custom reader URL template option. Subscription is completed in the destination reader.
 - Keeps a Raw XML escape hatch when you need to inspect the original feed.
 - Supports keyboard navigation with Up/Down or J/K.
 - Marks OPML feed cards after you click them.

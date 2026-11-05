@@ -1,0 +1,17 @@
+{
+  "extensionName": {
+    "message": "觅读订阅"
+  },
+  "extensionTitle": {
+    "message": "觅读订阅 · FeedLens - RSS 订阅源发现与预览"
+  },
+  "extensionDescription": {
+    "message": "发现网页上的 RSS、Atom 订阅源，预览文章与 OPML 订阅列表，复制订阅链接或跳转常用 RSS 阅读器完成订阅。"
+  },
+  "openFeedTitle": {
+    "message": "用觅读订阅打开 RSS"
+  },
+  "chooseFeedTitle": {
+    "message": "用觅读订阅选择 RSS 订阅源"
+  }
+}

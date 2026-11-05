@@ -95,7 +95,7 @@
   function createFeedButton(feeds) {
     const button = document.createElement("button");
     button.type = "button";
-    button.title = feeds.length > 1 ? "Choose RSS feed with FeedLens" : "Open RSS with FeedLens";
+    button.title = chrome.i18n.getMessage(feeds.length > 1 ? "chooseFeedTitle" : "openFeedTitle");
     button.setAttribute("aria-label", button.title);
     button.innerHTML = `
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">

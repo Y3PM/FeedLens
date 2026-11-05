@@ -261,7 +261,7 @@ async function rememberDiscoveredFeeds(tabId, feeds) {
   try {
     await chrome.action.setBadgeText({ tabId, text: "RSS" });
     await chrome.action.setBadgeBackgroundColor({ tabId, color: "#F26522" });
-    await chrome.action.setTitle({ tabId, title: "Open RSS with FeedLens" });
+    await chrome.action.setTitle({ tabId, title: chrome.i18n.getMessage("openFeedTitle") });
   } catch {
     // Browser action state is a nice signal, but the page icon remains the primary entry.
   }
@@ -273,7 +273,7 @@ async function clearDiscoveredFeeds(tabId) {
 
   try {
     await chrome.action.setBadgeText({ tabId, text: "" });
-    await chrome.action.setTitle({ tabId, title: "FeedLens" });
+    await chrome.action.setTitle({ tabId, title: chrome.i18n.getMessage("extensionName") });
   } catch {
     // Some tab states cannot be updated while navigation is in progress.
   }

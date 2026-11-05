@@ -1,0 +1,17 @@
+{
+  "extensionName": {
+    "message": "FeedLens"
+  },
+  "extensionTitle": {
+    "message": "FeedLens - RSS Feed Finder & Preview"
+  },
+  "extensionDescription": {
+    "message": "Discover RSS and Atom feeds on websites, preview feeds and OPML lists, and subscribe with your favorite RSS reader."
+  },
+  "openFeedTitle": {
+    "message": "Open RSS with FeedLens"
+  },
+  "chooseFeedTitle": {
+    "message": "Choose RSS feed with FeedLens"
+  }
+}
