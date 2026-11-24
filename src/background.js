@@ -60,21 +60,24 @@ if (typeof chrome !== "undefined" && chrome.tabs && chrome.webRequest) {
   );
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!isTrustedMessageSender(sender)) return;
     if (message?.type === "FEEDLENS_OPEN_FILE_ACCESS_SETTINGS") {
+      if (sender.url !== chrome.runtime.getURL("src/reader.html") &&
+          !sender.url?.startsWith(chrome.runtime.getURL("src/reader.html") + "?")) return;
       openFileAccessSettings(sender.tab?.windowId)
         .then((success) => sendResponse({ success }))
         .catch(() => sendResponse({ success: false }));
       return true;
     }
 
-    if (!sender.tab?.id || !message || typeof message !== "object") return;
+    if (!Number.isInteger(sender.tab?.id) || !isHttpUrl(sender.url) || !message || typeof message !== "object") return;
 
     if (message.type === "FEEDLENS_DISCOVERED_FEEDS") {
       rememberDiscoveredFeeds(sender.tab.id, message.feeds);
       return;
     }
 
-    if (message.type === "FEEDLENS_OPEN_DISCOVERED_FEED" && message.feedUrl) {
+    if (message.type === "FEEDLENS_OPEN_DISCOVERED_FEED" && isHttpUrl(message.feedUrl)) {
       openReader(sender.tab.id, message.feedUrl, {
         openInNewTab: message.openInNewTab,
         openerTab: sender.tab
@@ -141,11 +144,16 @@ function responseHeader(headers = [], name) {
 
 function isHttpUrl(url) {
   try {
+    if (typeof url !== "string") return false;
     const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    return !parsed.username && !parsed.password && (parsed.protocol === "http:" || parsed.protocol === "https:");
   } catch {
     return false;
   }
+}
+
+function isTrustedMessageSender(sender) {
+  return sender?.id === chrome.runtime.id && sender.frameId === 0 && Number.isInteger(sender.tab?.id);
 }
 
 function isReaderUrl(url) {
@@ -201,6 +209,12 @@ function isSocialOrWebFeedUrl(parsed) {
 }
 
 async function openReader(tabId, url, options = {}) {
+  try {
+    const parsed = new URL(url);
+    if ((!isHttpUrl(url) && parsed.protocol !== "file:") || parsed.username || parsed.password) return;
+  } catch {
+    return;
+  }
   try {
     const readerUrl = chrome.runtime.getURL(`src/reader.html?feed=${encodeURIComponent(url)}`);
     if (options.openInNewTab) {
@@ -294,6 +308,7 @@ if (typeof module === "object" && module.exports) {
     isLikelyRssHubRoute,
     isSourceBrowserPage,
     isHttpUrl,
+    isTrustedMessageSender,
     isReaderUrl,
     shouldBypassReader,
     mainFrameContentTypeByTab

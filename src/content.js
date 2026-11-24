@@ -128,19 +128,27 @@
   function absoluteUrl(value) {
     if (!value) return "";
     try {
-      return new URL(value, state.sourceUrl || location.href).href;
+      return allowedContentUrl(new URL(value, state.sourceUrl || location.href));
     } catch {
-      return value;
+      return "";
     }
   }
 
   function absoluteUrlFor(value, node) {
     if (!value) return "";
     try {
-      return new URL(value, baseUrlFor(node)).href;
+      return allowedContentUrl(new URL(value, baseUrlFor(node)));
     } catch {
-      return value;
+      return "";
     }
+  }
+
+  function allowedContentUrl(url) {
+    if (url.username || url.password) return "";
+    if (url.protocol === "http:" || url.protocol === "https:") return url.href;
+    // Only an explicitly opened local feed may link to other local resources.
+    if (url.protocol === "file:" && new URL(state.sourceUrl || location.href).protocol === "file:") return url.href;
+    return "";
   }
 
   function baseUrlFor(node) {
@@ -194,49 +202,9 @@
       });
     }
 
-    const allowedTags = new Set([
-      "A", "ABBR", "B", "BLOCKQUOTE", "BR", "CODE", "EM", "FIGCAPTION",
-      "FIGURE", "H1", "H2", "H3", "H4", "HR", "I", "IMG", "LI", "OL",
-      "P", "PRE", "S", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TABLE",
-      "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"
-    ]);
-    const blockedTags = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED"]);
-    const allowedAttrs = new Map([
-      ["A", new Set(["href", "title"])],
-      ["IMG", new Set(["src", "alt", "title", "width", "height"])]
-    ]);
-
-    template.content.querySelectorAll("*").forEach((element) => {
-      if (blockedTags.has(element.tagName)) {
-        element.remove();
-        return;
-      }
-
-      if (!allowedTags.has(element.tagName)) {
-        element.replaceWith(...element.childNodes);
-        return;
-      }
-
-      [...element.attributes].forEach((attribute) => {
-        const allowed = allowedAttrs.get(element.tagName);
-        if (!allowed || !allowed.has(attribute.name.toLowerCase())) {
-          element.removeAttribute(attribute.name);
-        }
-      });
-
-      if (element.tagName === "A") {
-        element.setAttribute("target", "_blank");
-        element.setAttribute("rel", "noreferrer noopener");
-      }
-
-      if (element.tagName === "IMG") {
-        element.setAttribute("loading", "lazy");
-        element.setAttribute("decoding", "async");
-        element.setAttribute("referrerpolicy", "no-referrer");
-      }
-    });
-
-    return template.innerHTML;
+    // If the sanitizer is unavailable, display text instead of maintaining a
+    // second, weaker HTML sanitizer.
+    return escapeHtml(template.content.textContent || "");
   }
 
   function normalizeFeedHtml(template) {
@@ -530,15 +498,14 @@
     return readerBypassUrl(feedUrl);
   }
 
-  function readerBypassUrl(urlValue, fallback = location.href) {
+  function readerBypassUrl(urlValue) {
     try {
       const url = new URL(urlValue);
-      if (url.protocol === "http:" || url.protocol === "https:" || url.protocol === "file:") {
-        url.hash = readerBypassHash(url.hash);
-      }
+      if (!allowedContentUrl(url)) return "";
+      url.hash = readerBypassHash(url.hash);
       return url.href;
     } catch {
-      return fallback;
+      return "";
     }
   }
 
@@ -1010,7 +977,7 @@
     const targetUrl = readerId === "custom" ? customSubscribeUrl(state.feed.feedUrl) : readerSubscribeUrl(readerId, state.feed.feedUrl);
     closeSubscribeMenu();
     if (!targetUrl) return;
-    window.open(readerBypassUrl(targetUrl, targetUrl), "_blank", "noopener,noreferrer");
+    window.open(readerBypassUrl(targetUrl), "_blank", "noopener,noreferrer");
   }
 
   function readerSubscribeUrl(readerId, feedUrl) {
@@ -1021,10 +988,12 @@
     const current = loadCustomSubscribeTemplate();
     const template = window.prompt("Custom reader URL template. Use %s for the RSS URL.\nTT-RSS example: https://rss.example.com/public.php?op=bookmarklets--subscribe&feed_url=%s", current);
     if (!template) return "";
-    saveCustomSubscribeTemplate(template);
-    return template.includes("%s")
+    const target = template.includes("%s")
       ? template.replaceAll("%s", encodeURIComponent(feedUrl))
       : `${template}${encodeURIComponent(feedUrl)}`;
+    if (!isHttpUrl(target) || !absoluteUrl(target)) return "";
+    saveCustomSubscribeTemplate(template);
+    return target;
   }
 
   function loadCustomSubscribeTemplate() {
@@ -1212,7 +1181,11 @@
   }
 
   async function renderFeedUrl(feedUrl) {
-    state.sourceUrl = feedUrl;
+    const parsedUrl = new URL(feedUrl);
+    if (!["http:", "https:", "file:"].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password) {
+      throw new Error("Unsupported feed URL.");
+    }
+    state.sourceUrl = parsedUrl.href;
     if (globalThis.FeedLensFileAccess.isLocalFileUrl(feedUrl)) {
       const accessState = await globalThis.FeedLensFileAccess.getFileSchemeAccessState();
       if (accessState === false) {
@@ -1276,12 +1249,12 @@
   globalThis.__feedLensTryInit = init;
   globalThis.__feedLensRenderXmlText = (xmlText) => {
     renderXmlText(xmlText).catch((error) => {
-      console.warn("FeedLens could not render fetched feed text:", error);
+      console.warn("FeedLens could not render fetched feed text.");
       renderReaderError(error);
     });
   };
   init().catch((error) => {
-    console.warn("FeedLens could not render this feed:", error);
+    console.warn("FeedLens could not render this feed.");
     renderReaderError(error);
   });
 
@@ -1290,7 +1263,7 @@
     const feedUrl = readerPageFeedUrl() || state.sourceUrl;
     const rawUrl = rawFeedUrl(feedUrl);
     const sourceUrl = sourcePageUrl(feedUrl);
-    const message = normalize(error?.message || "FeedLens could not preview this feed.");
+    const message = "FeedLens could not preview this feed. Check the URL, file permission, or feed format.";
     const appHtml = `
       <main class="br-error-app">
         <section class="br-error-card" role="alert">
@@ -1374,6 +1347,7 @@
   function sourcePageUrl(feedUrl) {
     try {
       const url = new URL(feedUrl);
+      if (!allowedContentUrl(url)) return "";
       url.hash = "";
       const path = url.pathname.replace(/(?:^|\/)(?:feed|rss|atom|index\.xml|feed\.(?:xml|html?)|rss\.(?:xml|html?)|atom\.(?:xml|html?))(?:\/)?$/i, "/");
       url.pathname = path || "/";

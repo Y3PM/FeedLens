@@ -17,6 +17,12 @@
 
   function isCanonicalFeedLink({ rel, type, href } = {}) {
     if (!String(href || "").trim()) return false;
+    try {
+      const url = new URL(String(href), "https://feedlens.invalid");
+      if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return false;
+    } catch {
+      return false;
+    }
     const relTokens = String(rel || "").toLowerCase().split(/\s+/).filter(Boolean);
     const mimeType = String(type || "").toLowerCase().split(";", 1)[0].trim();
     return relTokens.includes("alternate") && FEED_MIME_TYPES.has(mimeType);
